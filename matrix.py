@@ -1,8 +1,6 @@
 import numpy as np
 from lxml import etree
 
-
-
 class matrix:
     def __init__(self, file_path: str):
         self.tree = etree.parse(file_path)
