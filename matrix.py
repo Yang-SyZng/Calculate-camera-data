@@ -2,14 +2,16 @@ import numpy as np
 from lxml import etree
 
 class matrix:
-    def __init__(self, file_path: str):
-        self.tree = etree.parse(file_path)
+    def __init__(self, camera_data_path: str):
+        self.tree = etree.parse(camera_data_path)
+
+    def generate_depth(self, save_path: str):
+        print(self.tree.getroot())
 
     def find_xml(self, tree, photo_file_path: str):
         assert isinstance(tree.tree, etree._ElementTree), "TypeError"
         tree = tree.tree
         photo_file_name = photo_file_path.split('/')[-1]
-        assert ".jpg" in photo_file_name, "photo_file_path Error, must be '/Conference1230/undis/0/00001-cam0.jpg'"
 
         photo_number = int(photo_file_name.split('-')[0])
         camera_number = photo_file_name.split('-')[1].split('.')[0]
@@ -40,7 +42,7 @@ class matrix:
                             [Rotation[3].text, Rotation[4].text, Rotation[5].text],
                             [Rotation[6].text, Rotation[7].text, Rotation[8].text],
                             ], dtype=np.float64)
-        
+
         Center = Photo.find("Pose").find("Center")
         camera_position = np.array([[Center[0].text, Center[1].text, Center[2].text]], dtype=np.float64)
 
