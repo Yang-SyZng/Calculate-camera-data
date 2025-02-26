@@ -1,23 +1,59 @@
 import numpy as np
 from lxml import etree
+import open3d as o3d
 
 class matrix:
     def __init__(self, camera_data_path: str):
         self.tree = etree.parse(camera_data_path)
+        self.point_cloud = './color/color_SS_0.002_nf_RADIUS0.06_REL0.5_sor_100_1.5_sor_200_2_all.pcd.pcd'
 
-    def generate_depth(self, save_path: str):
-        print(self.tree.getroot())
+    def generate_depth(self, tree: etree._ElementTree = None):
+        if tree:
+            self.tree = tree
+        root = self.tree.getroot()
+        block = root.find("Block")
+        photogroups = block.find("Photogroups")
+        photogroup_lists = photogroups.findall("Photogroup")
 
-    def find_xml(self, tree, photo_file_path: str):
-        assert isinstance(tree.tree, etree._ElementTree), "TypeError"
-        tree = tree.tree
-        photo_file_name = photo_file_path.split('/')[-1]
+        pc = o3d.io.read_point_cloud(self.point_cloud)
+        points = np.asarray(pc.points)
 
-        photo_number = int(photo_file_name.split('-')[0])
-        camera_number = photo_file_name.split('-')[1].split('.')[0]
+        if pc.has_colors():
+            colors = np.asarray(pc.colors)
+            # 合并坐标和颜色，形成 (N, 6) 数组
+            point_cloud_array = np.hstack((points, colors))
+        else:
+            point_cloud_array = points
+        # cam_num
+        cam_num = len(photogroup_lists)
+        # 相机内参
+        cameras_intrinsic = np.array([None] * cam_num, dtype=object)  # 初始化为 None
+        for i in range(cam_num):
+            cameras_intrinsic[i] = self.find_camera_intrinsic(photogroup_lists[i])
+        # photo_num
+        photo_num = np.array([None] * cam_num, dtype=object)  # 初始化为 None
+        for i in range(cam_num):
+            photo_num[i] = len(photogroup_lists[i].findall("Photo"))
 
-        root = tree.getroot().find("Block").find("Photogroups")[int(camera_number[-1])]
+        photos_camera_extrinsic = np.array([None] * cam_num, dtype=object)  # 先创建 cam_num 行的列表
+        for i in range(cam_num):
+            photos_camera_extrinsic[i] = np.array([None] * photo_num[i], dtype=object)  # 为每行分配 photo_num[i] 列
+        for i in range(cam_num):
+            for j in range(photo_num[i]):
+                photos = photogroup_lists[i].findall("Photo")
+                photos_camera_extrinsic[i][j] = self.find_camera_extrinsic(photos[j])
+        ci, ce = self.process(cameras_intrinsic[0], photos_camera_extrinsic[0][0][1])
+        c2d = self.calculate_2d_coordinate(points, ci, ce)
+        print(c2d)
+        # # 遍历每个 <Photogroup> 并提取 <Name> 标签内容
+        # for i, photogroup in enumerate(root):
+        #     name = photogroup.find("Name")W
+        #     if name is not None:
+        #         print(f"Photogroup {i + 1} Name:", name.text)
+        #     else:
+        #         print(f"Photogroup {i + 1} has no Name")
 
+    def find_camera_intrinsic(self, root: etree._ElementTree):
         # 图像大小
         ImageDimensions = root.find("ImageDimensions")
         width = ImageDimensions.find("Width").text
@@ -25,31 +61,36 @@ class matrix:
         # 焦距
         FocalLength = root.find("FocalLength")
         f = FocalLength.text
+        # 传感器尺寸
+        SensorSize = root.find("SensorSize")
+        S = SensorSize.text
         # 主点坐标
         PrincipalPoint = root.find("PrincipalPoint")
         cx = PrincipalPoint.find("x").text
         cy = PrincipalPoint.find("y").text
-        # 传感器尺寸
-        SensorSize = root.find("SensorSize")
-        S = SensorSize.text
 
         camera_intrinsic = np.array([width, height, f, S, cx, cy], dtype=np.float64)
 
+        return camera_intrinsic
+    def find_camera_extrinsic(self, root: etree._ElementTree):
+        # 图像名
+        ImagePath: str = root.find("ImagePath").text
+        ImageName = ImagePath.split('/')[-1]
         # 图像
-        Photo = root[12 + photo_number]
-        Rotation = Photo.find("Pose").find("Rotation")
+        Rotation = root.find("Pose").find("Rotation")
         rotations = np.array([[Rotation[0].text, Rotation[1].text, Rotation[2].text],
                             [Rotation[3].text, Rotation[4].text, Rotation[5].text],
                             [Rotation[6].text, Rotation[7].text, Rotation[8].text],
                             ], dtype=np.float64)
 
-        Center = Photo.find("Pose").find("Center")
+        Center = root.find("Pose").find("Center")
         camera_position = np.array([[Center[0].text, Center[1].text, Center[2].text]], dtype=np.float64)
 
+        # 合并为 3x4 矩阵
         camera_extrinsic = [rotations, camera_position]
 
 
-        return camera_intrinsic, camera_extrinsic
+        return [ImageName, camera_extrinsic]
     def calculate_2d_coordinate(self, world_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray, camera_extrinsic_matrix: np.ndarray):
         assert world_point_cloud.shape[1] == 3, f"Shape Error, we need (x, 3), but your point cloud are (x, {world_point_cloud.shape[1]})"
         assert camera_extrinsic_matrix.shape == (4, 4), f"Shape Error, we need (4, 4), but your are {camera_extrinsic_matrix.shape}"
@@ -68,6 +109,7 @@ class matrix:
         camera_2d_point = camera_2d_point / camera_2d_point[2, :]
 
         return camera_2d_point.T[:, :2]
+
     def calculate_depth_2_point_cloud(self, depth: np.ndarray,  camera_intrinsic_matrix: np.ndarray, camera_extrinsic_matrix: np.ndarray) -> np.ndarray:
         assert len(depth.shape) == 2
         assert camera_intrinsic_matrix.shape == (3, 3), f"Shape Error, we need (3, 3), but your are {camera_intrinsic_matrix.shape}"
