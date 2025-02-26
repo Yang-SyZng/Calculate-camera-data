@@ -1,6 +1,9 @@
 import numpy as np
 from lxml import etree
 import open3d as o3d
+import matplotlib.pyplot as plt
+from numpy.ma.core import shape
+
 
 class matrix:
     def __init__(self, camera_data_path: str):
@@ -43,8 +46,50 @@ class matrix:
                 photos = photogroup_lists[i].findall("Photo")
                 photos_camera_extrinsic[i][j] = self.find_camera_extrinsic(photos[j])
         ci, ce = self.process(cameras_intrinsic[0], photos_camera_extrinsic[0][0][1])
-        c2d = self.calculate_2d_coordinate(points, ci, ce)
-        print(c2d)
+        c_c = self.calculate_camera_coordinate(points, ci, ce).T
+        W, H = 8277, 5259
+        # 使用提供的深度范围
+        z_near = 2.14467226876958  # NearDepth
+        z_far = 9.94855577789581  # FarDepth
+
+        X_c, Y_c, Z_c = c_c[:, 0], c_c[:, 1], c_c[:, 2]
+
+        # 过滤点云：只保留视锥体内的点
+        valid = (Z_c > z_near) & (Z_c < z_far)
+        c_c = c_c[valid]
+
+        X_c, Y_c, Z_c = c_c[:, 0], c_c[:, 1], c_c[:, 2]
+
+        # extend camera_intrinsic_matrix 2 (3, 4)
+        camera_intrinsic_matrix = np.concatenate((ci, np.array([0., 0., 0.]).reshape(3, 1)), axis=1)
+        # camera 3d 2 2d
+        camera_2d_point = np.dot(camera_intrinsic_matrix, c_c.T)
+        # normalization
+        camera_2d_point = (camera_2d_point / camera_2d_point[2, :]).T[:, :2]
+
+        u, v = camera_2d_point[:, 0], camera_2d_point[:, 1]
+
+        # 进一步过滤：只保留在图像边界内的点
+        valid = (u >= 0) & (u < W) & (v >= 0) & (v < H)
+        u = u[valid].astype(int)
+        v = v[valid].astype(int)
+        Z_c = Z_c[valid]
+        print(Z_c)
+        # 生成深度图
+        depth_map = np.full((H, W), 0)
+        for i in range(len(u)):
+            depth_map[v[i], u[i]] = Z_c[i]
+
+        # 将无穷大替换为 0（便于可视化）
+        depth_map[depth_map == np.inf] = 0
+
+        # 可视化
+        plt.imshow(depth_map, cmap='gray')
+        plt.colorbar(label='Depth')
+        plt.title('Depth Map')
+        plt.axis('off')
+        plt.show()
+
         # # 遍历每个 <Photogroup> 并提取 <Name> 标签内容
         # for i, photogroup in enumerate(root):
         #     name = photogroup.find("Name")W
@@ -52,6 +97,34 @@ class matrix:
         #         print(f"Photogroup {i + 1} Name:", name.text)
         #     else:
         #         print(f"Photogroup {i + 1} has no Name")
+
+    def calculate_camera_coordinate(self, world_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray,
+                                camera_extrinsic_matrix: np.ndarray):
+        assert world_point_cloud.shape[1] == 3, f"Shape Error, we need (x, 3), but your point cloud are (x, {world_point_cloud.shape[1]})"
+        assert camera_extrinsic_matrix.shape == (4, 4), f"Shape Error, we need (4, 4), but your are {camera_extrinsic_matrix.shape}"
+        assert camera_intrinsic_matrix.shape == (3, 3), f"Shape Error, we need (3, 3), but your are {camera_intrinsic_matrix.shape}"
+
+        # extend world_point_cloud 2 (x, 4)
+        world_point_cloud = np.concatenate((world_point_cloud, np.ones_like(world_point_cloud)[:, :1]), axis=1)
+
+        # word 2 camera
+        camera_point_cloud = np.dot(camera_extrinsic_matrix, world_point_cloud.T)
+
+        return camera_point_cloud
+
+    def calculate_2d_coordinate(self, world_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray,
+                                camera_extrinsic_matrix: np.ndarray):
+        camera_point_cloud = self.calculate_camera_coordinate(world_point_cloud, camera_intrinsic_matrix, camera_extrinsic_matrix)
+        # extend camera_intrinsic_matrix 2 (3, 4)
+        camera_intrinsic_matrix = np.concatenate((camera_intrinsic_matrix, np.array([0., 0., 0.]).reshape(3, 1)),
+                                                 axis=1)
+        # camera 3d 2 2d
+        camera_2d_point = np.dot(camera_intrinsic_matrix, camera_point_cloud)
+        # normalization
+        camera_2d_point = camera_2d_point / camera_2d_point[2, :]
+
+        return camera_2d_point.T[:, :2]
+        # return camera_2d_point.T
 
     def find_camera_intrinsic(self, root: etree._ElementTree):
         # 图像大小
@@ -91,24 +164,7 @@ class matrix:
 
 
         return [ImageName, camera_extrinsic]
-    def calculate_2d_coordinate(self, world_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray, camera_extrinsic_matrix: np.ndarray):
-        assert world_point_cloud.shape[1] == 3, f"Shape Error, we need (x, 3), but your point cloud are (x, {world_point_cloud.shape[1]})"
-        assert camera_extrinsic_matrix.shape == (4, 4), f"Shape Error, we need (4, 4), but your are {camera_extrinsic_matrix.shape}"
-        assert camera_intrinsic_matrix.shape == (3, 3), f"Shape Error, we need (3, 3), but your are {camera_intrinsic_matrix.shape}"
 
-        # extend camera_intrinsic_matrix 2 (3, 4)
-        camera_intrinsic_matrix = np.concatenate((camera_intrinsic_matrix, np.array([0., 0., 0.]).reshape(3, 1)), axis=1)
-        # extend world_point_cloud 2 (x, 4)
-        world_point_cloud = np.concatenate((world_point_cloud, np.ones_like(world_point_cloud)[:, :1]), axis=1)
-        
-        # word 2 camera
-        camera_point_cloud = np.dot(camera_extrinsic_matrix, world_point_cloud.T)
-        # camera 3d 2 2d
-        camera_2d_point = np.dot(camera_intrinsic_matrix, camera_point_cloud)
-        # normalization
-        camera_2d_point = camera_2d_point / camera_2d_point[2, :]
-
-        return camera_2d_point.T[:, :2]
 
     def calculate_depth_2_point_cloud(self, depth: np.ndarray,  camera_intrinsic_matrix: np.ndarray, camera_extrinsic_matrix: np.ndarray) -> np.ndarray:
         assert len(depth.shape) == 2
