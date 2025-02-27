@@ -19,14 +19,10 @@ class matrix:
         photogroup_lists = photogroups.findall("Photogroup")
 
         pc = o3d.io.read_point_cloud(self.point_cloud)
-        points = np.asarray(pc.points)
 
         if pc.has_colors():
             colors = np.asarray(pc.colors)
             # 合并坐标和颜色，形成 (N, 6) 数组
-            point_cloud_array = np.hstack((points, colors))
-        else:
-            point_cloud_array = points
         # cam_num
         cam_num = len(photogroup_lists)
         # 相机内参
@@ -45,20 +41,20 @@ class matrix:
             for j in range(photo_num[i]):
                 photos = photogroup_lists[i].findall("Photo")
                 photos_camera_extrinsic[i][j] = self.find_camera_extrinsic(photos[j])
+
+        # test debug
         ci, ce = self.process(cameras_intrinsic[0], photos_camera_extrinsic[0][0][1])
-        c_c = self.calculate_camera_coordinate(points, ci, ce).T
         W, H = 8277, 5259
-        # 使用提供的深度范围
-        z_near = 2.14467226876958  # NearDepth
-        z_far = 9.94855577789581  # FarDepth
-
+        pcd = self.pure_point_cloud(pc, photos_camera_extrinsic[0][0][1][1])
+        c_c = self.calculate_camera_coordinate(np.array(pcd.points), ci, ce).T
         X_c, Y_c, Z_c = c_c[:, 0], c_c[:, 1], c_c[:, 2]
-
-        # 过滤点云：只保留视锥体内的点
-        valid = (Z_c > z_near) & (Z_c < z_far)
-        c_c = c_c[valid]
-
-        X_c, Y_c, Z_c = c_c[:, 0], c_c[:, 1], c_c[:, 2]
+        print(len(Z_c))
+        #
+        # # 过滤点云：只保留视锥体内的点
+        # valid = (Z_c > z_near) & (Z_c < z_far)
+        # c_c = c_c[valid]
+        #
+        # X_c, Y_c, Z_c = c_c[:, 0], c_c[:, 1], c_c[:, 2]
 
         # extend camera_intrinsic_matrix 2 (3, 4)
         camera_intrinsic_matrix = np.concatenate((ci, np.array([0., 0., 0.]).reshape(3, 1)), axis=1)
@@ -74,30 +70,24 @@ class matrix:
         u = u[valid].astype(int)
         v = v[valid].astype(int)
         Z_c = Z_c[valid]
-        print(Z_c)
+        print(len(u))
+        exit(0)
         # 生成深度图
         depth_map = np.full((H, W), 0)
         for i in range(len(u)):
-            depth_map[v[i], u[i]] = Z_c[i]
-
-        # 将无穷大替换为 0（便于可视化）
-        depth_map[depth_map == np.inf] = 0
+            depth_map[int(v[i]), int(u[i])] = Z_c[i]
 
         # 可视化
         plt.imshow(depth_map, cmap='gray')
-        plt.colorbar(label='Depth')
         plt.title('Depth Map')
         plt.axis('off')
         plt.show()
 
-        # # 遍历每个 <Photogroup> 并提取 <Name> 标签内容
-        # for i, photogroup in enumerate(root):
-        #     name = photogroup.find("Name")W
-        #     if name is not None:
-        #         print(f"Photogroup {i + 1} Name:", name.text)
-        #     else:
-        #         print(f"Photogroup {i + 1} has no Name")
 
+    def pure_point_cloud(self, point_cloud, camera_location: np.ndarray, radius: float=1500.):
+        _, pt_map = point_cloud.hidden_point_removal(camera_location=camera_location.reshape((3, 1)), radius=radius)
+        pcd = point_cloud.select_by_index(pt_map)
+        return pcd
     def calculate_camera_coordinate(self, world_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray,
                                 camera_extrinsic_matrix: np.ndarray):
         assert world_point_cloud.shape[1] == 3, f"Shape Error, we need (x, 3), but your point cloud are (x, {world_point_cloud.shape[1]})"
@@ -155,14 +145,10 @@ class matrix:
                             [Rotation[3].text, Rotation[4].text, Rotation[5].text],
                             [Rotation[6].text, Rotation[7].text, Rotation[8].text],
                             ], dtype=np.float64)
-
         Center = root.find("Pose").find("Center")
         camera_position = np.array([[Center[0].text, Center[1].text, Center[2].text]], dtype=np.float64)
-
         # 合并为 3x4 矩阵
         camera_extrinsic = [rotations, camera_position]
-
-
         return [ImageName, camera_extrinsic]
 
 
