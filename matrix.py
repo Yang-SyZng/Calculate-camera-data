@@ -1,18 +1,27 @@
 import numpy as np
 from lxml import etree
 import open3d as o3d
+from collections import Counter
 import matplotlib.pyplot as plt
-from numpy.ma.core import shape
-
-
+from PIL import Image
+import os
 class matrix:
     def __init__(self, camera_data_path: str):
         self.tree = etree.parse(camera_data_path)
         self.point_cloud = './color/color_SS_0.002_nf_RADIUS0.06_REL0.5_sor_100_1.5_sor_200_2_all.pcd.pcd'
 
     def generate_depth(self, tree: etree._ElementTree = None):
+        depth_path = './depth'
+        try:
+            os.scandir(depth_path)
+        except FileNotFoundError:
+            os.mkdir(depth_path)
+
+        photo_path = './undis'
+        photo_names = os.listdir(photo_path)
         if tree:
             self.tree = tree
+
         root = self.tree.getroot()
         block = root.find("Block")
         photogroups = block.find("Photogroups")
@@ -20,79 +29,81 @@ class matrix:
 
         pc = o3d.io.read_point_cloud(self.point_cloud)
 
-        if pc.has_colors():
-            colors = np.asarray(pc.colors)
-            # 合并坐标和颜色，形成 (N, 6) 数组
         # cam_num
         cam_num = len(photogroup_lists)
         # 相机内参
-        cameras_intrinsic = np.array([None] * cam_num, dtype=object)  # 初始化为 None
+        cameras_info = []
         for i in range(cam_num):
-            cameras_intrinsic[i] = self.find_camera_intrinsic(photogroup_lists[i])
-        # photo_num
-        photo_num = np.array([None] * cam_num, dtype=object)  # 初始化为 None
+            cameras_info.append(self.find_camera_info(photogroup_lists[i]))
+        # 相机外参
+        photos_info = []
         for i in range(cam_num):
-            photo_num[i] = len(photogroup_lists[i].findall("Photo"))
+            photos = photogroup_lists[i].findall("Photo")
+            photos_info.append(self.find_photo_info(photo_names, photos))
 
-        photos_camera_extrinsic = np.array([None] * cam_num, dtype=object)  # 先创建 cam_num 行的列表
-        for i in range(cam_num):
-            photos_camera_extrinsic[i] = np.array([None] * photo_num[i], dtype=object)  # 为每行分配 photo_num[i] 列
-        for i in range(cam_num):
-            for j in range(photo_num[i]):
-                photos = photogroup_lists[i].findall("Photo")
-                photos_camera_extrinsic[i][j] = self.find_camera_extrinsic(photos[j])
+        for i, photos_group in enumerate(photos_info):
+            try:
+                os.scandir(depth_path + f'/{i}')
+            except FileNotFoundError:
+                os.mkdir(depth_path + f'/{i}')
+            for photo_info in photos_group:
+                photo_depth = self.render_depth(pc, cameras_info[i], photo_info)
+                photo_name = photo_info[0].split('.')[0]
+                Image.fromarray(photo_depth).save(depth_path + f'/{i}' + f'/depth-{photo_name}.png')
+            exit(0)
+    def find_photo_info(self, photo_names: list, root: etree._ElementTree):
+        photos_info_list = []
+        for i in root:
+            if i.find("ImagePath").text.split('/')[-1] in photo_names:
+                # 图像
+                Rotation = i.find("Pose").find("Rotation")
+                rotations = np.array([[Rotation[0].text, Rotation[1].text, Rotation[2].text],
+                                      [Rotation[3].text, Rotation[4].text, Rotation[5].text],
+                                      [Rotation[6].text, Rotation[7].text, Rotation[8].text],
+                                      ], dtype=np.float64)
+                Center = i.find("Pose").find("Center")
+                camera_position = np.array([[Center[0].text, Center[1].text, Center[2].text]], dtype=np.float64)
+                # 合并为 3x4 矩阵
+                camera_extrinsic = [rotations, camera_position]
+                photos_info_list.append([i.find("ImagePath").text.split('/')[-1], camera_extrinsic])
+        return photos_info_list
 
-        # test debug
-        ci, ce = self.process(cameras_intrinsic[0], photos_camera_extrinsic[0][0][1])
-        W, H = 8277, 5259
-        pcd = self.pure_point_cloud(pc, photos_camera_extrinsic[0][0][1][1])
-        c_c = self.calculate_camera_coordinate(np.array(pcd.points), ci, ce).T
-        X_c, Y_c, Z_c = c_c[:, 0], c_c[:, 1], c_c[:, 2]
-        print(len(Z_c))
-        #
-        # # 过滤点云：只保留视锥体内的点
-        # valid = (Z_c > z_near) & (Z_c < z_far)
-        # c_c = c_c[valid]
-        #
-        # X_c, Y_c, Z_c = c_c[:, 0], c_c[:, 1], c_c[:, 2]
+    def render_depth(self, points_cloud: o3d.cpu.pybind.geometry.PointCloud, camera_info: list, photo_info: list):
+        c_intrinsic_matrix, c_extrinsic_matrix = self.process(camera_info, photo_info[1])
+        width, height = camera_info[0].astype(int), camera_info[1].astype(int)
+        pured_points_cloud = self.pure_point_cloud(points_cloud, photo_info[1][1], radius=photo_info[1][1][-1]*1000)
+        # world_coordinate 2 camera_coordinate
+        pc_camera_coordinate = self.calculate_camera_coordinate(np.array(pured_points_cloud.points), c_extrinsic_matrix).T
 
-        # extend camera_intrinsic_matrix 2 (3, 4)
-        camera_intrinsic_matrix = np.concatenate((ci, np.array([0., 0., 0.]).reshape(3, 1)), axis=1)
-        # camera 3d 2 2d
-        camera_2d_point = np.dot(camera_intrinsic_matrix, c_c.T)
-        # normalization
-        camera_2d_point = (camera_2d_point / camera_2d_point[2, :]).T[:, :2]
+        # 提取相机坐标下点云的深度信息
+        Z_c = pc_camera_coordinate[:, 2]
+        pc_camera_2d_coordinate = self.calculate_2d_coordinate(pc_camera_coordinate, c_intrinsic_matrix)
 
-        u, v = camera_2d_point[:, 0], camera_2d_point[:, 1]
-
+        u, v = pc_camera_2d_coordinate[:, 0], pc_camera_2d_coordinate[:, 1]
         # 进一步过滤：只保留在图像边界内的点
-        valid = (u >= 0) & (u < W) & (v >= 0) & (v < H)
+        valid = (u >= 0) & (u < width) & (v >= 0) & (v < height)
         u = u[valid].astype(int)
         v = v[valid].astype(int)
         Z_c = Z_c[valid]
-        print(len(u))
-        exit(0)
         # 生成深度图
-        depth_map = np.full((H, W), 0)
+        depth_map = np.full((height, width), 0)
         for i in range(len(u)):
             depth_map[int(v[i]), int(u[i])] = Z_c[i]
 
-        # 可视化
-        plt.imshow(depth_map, cmap='gray')
-        plt.title('Depth Map')
-        plt.axis('off')
-        plt.show()
-
+        depth_normalized = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
+        depth_normalized = depth_normalized.astype(np.uint8)
+        print('render ok~！')
+        return depth_normalized
 
     def pure_point_cloud(self, point_cloud, camera_location: np.ndarray, radius: float=1500.):
         _, pt_map = point_cloud.hidden_point_removal(camera_location=camera_location.reshape((3, 1)), radius=radius)
         pcd = point_cloud.select_by_index(pt_map)
         return pcd
-    def calculate_camera_coordinate(self, world_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray,
-                                camera_extrinsic_matrix: np.ndarray):
-        assert world_point_cloud.shape[1] == 3, f"Shape Error, we need (x, 3), but your point cloud are (x, {world_point_cloud.shape[1]})"
-        assert camera_extrinsic_matrix.shape == (4, 4), f"Shape Error, we need (4, 4), but your are {camera_extrinsic_matrix.shape}"
-        assert camera_intrinsic_matrix.shape == (3, 3), f"Shape Error, we need (3, 3), but your are {camera_intrinsic_matrix.shape}"
+    def calculate_camera_coordinate(self, world_point_cloud: np.ndarray, camera_extrinsic_matrix: np.ndarray):
+        assert world_point_cloud.shape[1] == 3,\
+            f"Shape Error, we need (x, 3), but your point cloud are (x, {world_point_cloud.shape[1]})"
+        assert camera_extrinsic_matrix.shape == (4, 4),\
+            f"Shape Error, we need (4, 4), but your are {camera_extrinsic_matrix.shape}"
 
         # extend world_point_cloud 2 (x, 4)
         world_point_cloud = np.concatenate((world_point_cloud, np.ones_like(world_point_cloud)[:, :1]), axis=1)
@@ -102,21 +113,20 @@ class matrix:
 
         return camera_point_cloud
 
-    def calculate_2d_coordinate(self, world_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray,
-                                camera_extrinsic_matrix: np.ndarray):
-        camera_point_cloud = self.calculate_camera_coordinate(world_point_cloud, camera_intrinsic_matrix, camera_extrinsic_matrix)
+    def calculate_2d_coordinate(self, camera_point_cloud: np.ndarray, camera_intrinsic_matrix: np.ndarray):
+        assert camera_intrinsic_matrix.shape == (3, 3), \
+            f"Shape Error, we need (3, 3), but your are {camera_intrinsic_matrix.shape}"
         # extend camera_intrinsic_matrix 2 (3, 4)
         camera_intrinsic_matrix = np.concatenate((camera_intrinsic_matrix, np.array([0., 0., 0.]).reshape(3, 1)),
                                                  axis=1)
         # camera 3d 2 2d
-        camera_2d_point = np.dot(camera_intrinsic_matrix, camera_point_cloud)
+        camera_2d_point = np.dot(camera_intrinsic_matrix, camera_point_cloud.T)
         # normalization
         camera_2d_point = camera_2d_point / camera_2d_point[2, :]
 
         return camera_2d_point.T[:, :2]
-        # return camera_2d_point.T
 
-    def find_camera_intrinsic(self, root: etree._ElementTree):
+    def find_camera_info(self, root: etree._ElementTree):
         # 图像大小
         ImageDimensions = root.find("ImageDimensions")
         width = ImageDimensions.find("Width").text
@@ -132,25 +142,9 @@ class matrix:
         cx = PrincipalPoint.find("x").text
         cy = PrincipalPoint.find("y").text
 
-        camera_intrinsic = np.array([width, height, f, S, cx, cy], dtype=np.float64)
+        camera_info = np.array([width, height, f, S, cx, cy], dtype=np.float64)
 
-        return camera_intrinsic
-    def find_camera_extrinsic(self, root: etree._ElementTree):
-        # 图像名
-        ImagePath: str = root.find("ImagePath").text
-        ImageName = ImagePath.split('/')[-1]
-        # 图像
-        Rotation = root.find("Pose").find("Rotation")
-        rotations = np.array([[Rotation[0].text, Rotation[1].text, Rotation[2].text],
-                            [Rotation[3].text, Rotation[4].text, Rotation[5].text],
-                            [Rotation[6].text, Rotation[7].text, Rotation[8].text],
-                            ], dtype=np.float64)
-        Center = root.find("Pose").find("Center")
-        camera_position = np.array([[Center[0].text, Center[1].text, Center[2].text]], dtype=np.float64)
-        # 合并为 3x4 矩阵
-        camera_extrinsic = [rotations, camera_position]
-        return [ImageName, camera_extrinsic]
-
+        return camera_info
 
     def calculate_depth_2_point_cloud(self, depth: np.ndarray,  camera_intrinsic_matrix: np.ndarray, camera_extrinsic_matrix: np.ndarray) -> np.ndarray:
         assert len(depth.shape) == 2
