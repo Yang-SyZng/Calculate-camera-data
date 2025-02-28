@@ -1,10 +1,10 @@
 import numpy as np
 from lxml import etree
 import open3d as o3d
-from collections import Counter
-import matplotlib.pyplot as plt
 from PIL import Image
 import os
+from tqdm import tqdm
+
 class matrix:
     def __init__(self, camera_data_path: str):
         self.tree = etree.parse(camera_data_path)
@@ -41,12 +41,12 @@ class matrix:
             photos = photogroup_lists[i].findall("Photo")
             photos_info.append(self.find_photo_info(photo_names, photos))
 
-        for i, photos_group in enumerate(photos_info):
+        for i, photos_group in enumerate(tqdm(photos_info, desc="Processing photo groups")):
             try:
                 os.scandir(depth_path + f'/{i}')
             except FileNotFoundError:
                 os.mkdir(depth_path + f'/{i}')
-            for photo_info in photos_group:
+            for photo_info in tqdm(photos_group, desc=f"Rendering depths for group {i + 1}", leave=False):
                 photo_depth = self.render_depth(pc, cameras_info[i], photo_info)
                 photo_name = photo_info[0].split('.')[0]
                 Image.fromarray(photo_depth).save(depth_path + f'/{i}' + f'/depth-{photo_name}.png')
@@ -71,7 +71,7 @@ class matrix:
     def render_depth(self, points_cloud: o3d.cpu.pybind.geometry.PointCloud, camera_info: list, photo_info: list):
         c_intrinsic_matrix, c_extrinsic_matrix = self.process(camera_info, photo_info[1])
         width, height = camera_info[0].astype(int), camera_info[1].astype(int)
-        pured_points_cloud = self.pure_point_cloud(points_cloud, photo_info[1][1], radius=photo_info[1][1][-1]*1000)
+        pured_points_cloud = self.pure_point_cloud(points_cloud, photo_info[1][1], radius=1000)
         # world_coordinate 2 camera_coordinate
         pc_camera_coordinate = self.calculate_camera_coordinate(np.array(pured_points_cloud.points), c_extrinsic_matrix).T
 
@@ -85,14 +85,13 @@ class matrix:
         u = u[valid].astype(int)
         v = v[valid].astype(int)
         Z_c = Z_c[valid]
+        Z_c_normalized = (Z_c - Z_c.min()) / (Z_c.max() - Z_c.min()) * 255
         # 生成深度图
         depth_map = np.full((height, width), 0)
         for i in range(len(u)):
-            depth_map[int(v[i]), int(u[i])] = Z_c[i]
+            depth_map[int(v[i]), int(u[i])] = Z_c_normalized[i]
 
-        depth_normalized = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
-        depth_normalized = depth_normalized.astype(np.uint8)
-        print('render ok~！')
+        depth_normalized = depth_map.astype(np.uint8)
         return depth_normalized
 
     def pure_point_cloud(self, point_cloud, camera_location: np.ndarray, radius: float=1500.):
