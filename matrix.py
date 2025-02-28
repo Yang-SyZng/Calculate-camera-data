@@ -59,7 +59,7 @@ class matrix:
                                       [Rotation[3].text, Rotation[4].text, Rotation[5].text],
                                       [Rotation[6].text, Rotation[7].text, Rotation[8].text],
                                       ], dtype=np.float64)
-                Center = i.find("Pose").find("Center")】
+                Center = i.find("Pose").find("Center")
                 # t矩阵
                 camera_position = np.array([[Center[0].text, Center[1].text, Center[2].text]], dtype=np.float64)
 
@@ -88,14 +88,15 @@ class matrix:
 
         return camera_info
 
-    def render_depth(self, points_cloud: o3d.cpu.pybind.geometry.PointCloud, camera_info: list, photo_info: list):
+    def render_depth(self, points_cloud: o3d.cpu.pybind.geometry.PointCloud, camera_info, photo_info: list):
         # 计算radius
         diameter = np.linalg.norm(np.asarray(points_cloud.get_max_bound()) - np.asarray(points_cloud.get_min_bound()))
         # 预处理内外参
         c_intrinsic_matrix, c_extrinsic_matrix = self.process(camera_info, photo_info[1])
         width, height = camera_info[0].astype(int), camera_info[1].astype(int)
         # 点云的剔除
-        pured_points_cloud = self.pure_point_cloud(points_cloud, photo_info[1][1], radius=diameter * 1000)
+        pured_points_cloud = self.pure_point_cloud(points_cloud, photo_info[1][1], radius=diameter * 50)
+
         # 点云 世界坐标 -> 相机坐标
         pc_camera_coordinate = self.calculate_camera_coordinate(np.array(pured_points_cloud.points), c_extrinsic_matrix).T
         # 提取相机坐标下点云的深度信息
