@@ -230,9 +230,7 @@ def s2t_extrinsic(source: np.ndarray, target: np.ndarray):
     target_R = target[:3, :3]
     target_T = target[:3, 3:]
 
-
     target_R_inv = np.linalg.inv(target_R)
     T = np.concatenate((np.concatenate((np.dot(target_R_inv, source_R), np.dot(target_R_inv, (source_T - target_T))), axis=1),  np.array([[0, 0, 0, 1]])), axis=0)
-                 
-    
+
     return T
