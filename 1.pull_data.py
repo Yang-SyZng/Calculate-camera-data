@@ -160,7 +160,7 @@ if __name__ == '__main__':
     input_dir = './input'
     output_dir = './output'
 
-    with open('config.json') as file:
+    with open('config/config.json') as file:
         data = json.load(file)
     targetWidth = int(data['imageWidth'])
 
