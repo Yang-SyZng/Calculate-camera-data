@@ -6,7 +6,7 @@ from PIL import Image
 
 """
 created by yang @ 2024/11/07
-restructured by yang @ 2025/02/28
+restructured by yang @ 2025/03/2
 """
 
 def generate_depth(tree: etree._ElementTree = None):

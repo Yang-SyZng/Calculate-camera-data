@@ -2,7 +2,7 @@ import numpy as np
 
 """
 created by yang @ 2024/11/07
-restructured by yang @ 2025/02/28
+restructured by yang @ 2025/03/2
 """
 
 def world_to_camera(world_point: np.ndarray, extrinsic: np.ndarray):
@@ -18,7 +18,6 @@ def world_to_camera(world_point: np.ndarray, extrinsic: np.ndarray):
     """
     if world_point.shape[1] != 3:
         raise ValueError(f"Expected world_points to have shape (N, 3), but got (N, {world_point.shape[1]})")
-
     if extrinsic.shape != (4, 4):
         raise ValueError(f"Expected extrinsic to have shape (4, 4), but got {extrinsic.shape}")
 
@@ -45,7 +44,7 @@ def camera_to_2D(camera_points: np.ndarray, intrinsic: np.ndarray):
         ValueError: 点云、内参形状不符合要求
     """
     if intrinsic.shape != (3, 3):
-        raise ValueError(f"Expected intrinsic to have shape (3, 3), but got{intrinsic.shape}")
+        raise ValueError(f"Expected intrinsic to have shape (3, 3), but got {intrinsic.shape}")
 
     # extend intrinsic
     # form [3, 3] 2 [3, 4]
@@ -57,18 +56,35 @@ def camera_to_2D(camera_points: np.ndarray, intrinsic: np.ndarray):
 
     return photo_points.T[:, :2]
 
-def process(camera_intrinsic: list, camera_extrinsic: list):
-    assert len(camera_intrinsic) == 6, f"Amount Error, we need 6, but your are {len(camera_intrinsic)}"
-    assert len(camera_extrinsic) == 2, f"Amount Error, we need 2, but your are {len(camera_extrinsic)}"
-    assert isinstance(camera_extrinsic[0], np.ndarray), f"TypeError"
-    assert isinstance(camera_extrinsic[1], np.ndarray), f"TypeError"
-    assert camera_extrinsic[0].shape == (3, 3), f"Shape Error, we need (3, 3), but your are {camera_extrinsic[0].shape}"
-    assert camera_extrinsic[1].shape == (1, 3), f"Shape Error, we need (1, 3), but your are {camera_extrinsic[1].shape}"
+def convert_in_ex(intrinsic_info: list, extrinsic_info: list):
+    """
+    Args:
+        intrinsic_info: [width, height, f, S, cx, cy]
+        extrinsic_info: [img_name, [R, t]]
 
-    return _process_intrinsic_(camera_intrinsic), _process_extrinsic_(camera_extrinsic)
+    Returns: camera_intrinsic_matrix, camera_extrinsic_matrix
+
+    Raises:
+        ValueError: 内外参数信息不符合要求
+    """
+    if len(intrinsic_info) != 6:
+        raise ValueError(f"Expected intrinsic to have amount 6, but got {len(intrinsic_info)}")
+    if len(intrinsic_info) != 2:
+        raise ValueError(f"Expected extrinsic to have amount 2, but got {len(extrinsic_info)}")
+    if isinstance(intrinsic_info[0], np.ndarray):
+        raise TypeError(f"Expected intrinsic type np.ndarray, but got {type(intrinsic_info)}")
+    if isinstance(extrinsic_info[0], np.ndarray):
+        raise TypeError(f"Expected extrinsic type np.ndarray, but got {type(extrinsic_info[0])}")
+    if extrinsic_info[1].shape != (1, 3):
+        raise ValueError(f"Expected extrinsic to have shape (1, 3), but got {extrinsic_info[1].shape}")
+    if extrinsic_info[0].shape != (3, 3):
+        raise ValueError(f"Expected extrinsic to have shape (3, 3), but got {extrinsic_info[0].shape}")
 
 
-def _process_intrinsic_(camera_intrinsic: list):
+    return _convert_intrinsic_(intrinsic_info), _convert_extrinsic_(extrinsic_info)
+
+
+def _convert_intrinsic_(camera_intrinsic: list):
     AspectRatio = 1
     w, h = camera_intrinsic[:2]
     f = camera_intrinsic[2]
@@ -90,7 +106,7 @@ def _process_intrinsic_(camera_intrinsic: list):
     return intrinsic
 
 
-def _process_extrinsic_(camera_extrinsic: list):
+def _convert_extrinsic_(camera_extrinsic: list):
     roration = camera_extrinsic[0]
     xyz = camera_extrinsic[1].T
     xyz_offset = np.dot(-roration, xyz)
@@ -130,6 +146,5 @@ def calculate_depth_2_point_cloud(depth: np.ndarray, camera_intrinsic_matrix: np
     return points
 
 if __name__ == '__main__':
-    pc = np.ones((10, 3))
-    ex = np.ones((4, 4))
-    world_to_camera(pc, ex)
+    point_files = os.listdir(color)
+    # point_cloud = o3d.io.read_point_cloud(os.path.join(color, f'{point_files[0]}'))
