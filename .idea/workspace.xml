@@ -5,13 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4018048d-cf1d-488b-81ab-f4d7bd496ae9" name="更改" comment="update">
-      <change afterPath="$PROJECT_DIR$/cal_scripts/config.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cal_scripts/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cal_scripts/convert_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/cal_scripts/2.convert_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cal_scripts/generate_depth.py" beforeDir="false" afterPath="$PROJECT_DIR$/cal_scripts/3.generate_depth.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cal_scripts/pull_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/cal_scripts/1.pull_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/matrix.py" beforeDir="false" afterPath="$PROJECT_DIR$/matrix.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1.pull_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/1.pull_data.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -111,6 +106,7 @@
       <recent name="E:\Projections\Python\Calculate-camera-data\cal_scripts" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\Projections\Python\Calculate-camera-data" />
       <recent name="E:\Projections\Python\Calculate-camera-data\scripts\data\input" />
       <recent name="E:\Projections\Python\Calculate-camera-data\ip_basic" />
       <recent name="E:\Projections\Python\Calculate-camera-data\data" />
@@ -144,7 +140,7 @@
       <workItem from="1740880051227" duration="9000" />
       <workItem from="1740881222694" duration="1421000" />
       <workItem from="1740882669138" duration="327000" />
-      <workItem from="1740883015145" duration="18763000" />
+      <workItem from="1740883015145" duration="18935000" />
     </task>
     <task id="LOCAL-00001" summary="Add files via upload">
       <option name="closed" value="true" />
@@ -322,7 +318,23 @@
       <option name="project" value="LOCAL" />
       <updated>1740885144346</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="update">
+      <option name="closed" value="true" />
+      <created>1740916328876</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1740916328876</updated>
+    </task>
+    <task id="LOCAL-00024" summary="update">
+      <option name="closed" value="true" />
+      <created>1740916423352</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1740916423352</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

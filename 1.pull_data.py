@@ -157,8 +157,8 @@ def save_info(input_dir: str, output_dir: str, cameras_info, photos_info, target
 
                 resized_image.save(os.path.join(resize_images_path, img_n))
 if __name__ == '__main__':
-    input_dir = 'input'
-    output_dir = 'output'
+    input_dir = './input'
+    output_dir = './output'
 
     with open('config.json') as file:
         data = json.load(file)
