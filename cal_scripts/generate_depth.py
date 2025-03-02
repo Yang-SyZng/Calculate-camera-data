@@ -5,7 +5,8 @@ import tqdm
 from PIL import Image
 
 """
-created&reconstruct by yang @ 2025/02/28
+created by yang @ 2024/11/07
+restructured by yang @ 2025/02/28
 """
 
 def generate_depth(tree: etree._ElementTree = None):
