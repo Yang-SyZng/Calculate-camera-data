@@ -1,9 +1,56 @@
 import numpy as np
+import os
+import json
+from tqdm.auto import tqdm
+import open3d as o3d
+from PIL import Image
+from scripts.pull_data import read_info
+from ip_basic.ip_basic import ip
+
 
 """
 created by yang @ 2024/11/07
 restructured by yang @ 2025/03/2
 """
+
+def render_depth(points_cloud, camera_info, photo_info, radius):
+    # [width, height, fx, fy, cx, cy, intrinsic]
+    # [id, img_name, quaternion, rotation, camera_position, extrinsic]
+    # 预处理内外参
+    width, height = camera_info[0].astype(int), camera_info[1].astype(int)
+    # 点云的剔除
+    pured_points = pure_point_cloud(points_cloud, np.array(photo_info[4]), radius=radius)
+
+    # 点云 世界坐标 -> 相机坐标
+    pc_camera_coordinate = world_to_camera(np.array(pured_points.points), photo_info[-1]).T
+    # 提取相机坐标下点云的深度信息
+    # 过滤相机背后的点云
+    valid = (pc_camera_coordinate[:, 2] >= 0)
+    pc_camera_coordinate = pc_camera_coordinate[valid]
+    Z_c = pc_camera_coordinate[:, 2]
+    # 点云投影到图像上
+    pc_camera_2d_coordinate = camera_to_2D(pc_camera_coordinate, camera_info[-1])
+
+    u, v = pc_camera_2d_coordinate[:, 0], pc_camera_2d_coordinate[:, 1]
+    # 进一步过滤：只保留在图像边界内的点
+    valid = (u >= 0) & (u < width) & (v >= 0) & (v < height)
+    u = u[valid].astype(int)
+    v = v[valid].astype(int)
+    Z_c = Z_c[valid]
+    # 转换成图像深度
+    Z_c_normalized = (Z_c - Z_c.min()) / (Z_c.max() - Z_c.min()) * 255
+    # 生成深度图
+    depth_map_normalized = np.full((height, width), 0)
+    depth_map = np.full((height, width), 0)
+    for i in range(len(u)):
+        depth_map_normalized[int(v[i]), int(u[i])] = Z_c_normalized[i]
+        depth_map[int(v[i]), int(u[i])] = Z_c[i]
+    return depth_map, depth_map_normalized.astype(np.uint8), pured_points
+
+def pure_point_cloud(point_cloud, camera_location: np.ndarray, radius: float):
+    _, pt_map = point_cloud.hidden_point_removal(camera_location=camera_location.reshape((3, 1)), radius=radius)
+    pcd = point_cloud.select_by_index(pt_map)
+    return pcd
 
 def world_to_camera(world_point: np.ndarray, extrinsic: np.ndarray):
     """
@@ -116,35 +163,33 @@ def _convert_extrinsic_(camera_extrinsic: list):
 
     return extrinsic
 
-def calculate_depth_2_point_cloud(depth: np.ndarray, camera_intrinsic_matrix: np.ndarray,
-                                  camera_extrinsic_matrix: np.ndarray) -> np.ndarray:
-    assert len(depth.shape) == 2
-    assert camera_intrinsic_matrix.shape == (
-        3, 3), f"Shape Error, we need (3, 3), but your are {camera_intrinsic_matrix.shape}"
-    assert camera_extrinsic_matrix.shape == (
-        4, 4), f"Shape Error, we need (4, 4), but your are {camera_extrinsic_matrix.shape}"
-    fx = camera_intrinsic_matrix[0][0]
-    fy = camera_intrinsic_matrix[1][1]
-    cx = camera_intrinsic_matrix[0][2]
-    cy = camera_intrinsic_matrix[1][2]
-    camera_extrinsic_inv = np.linalg.inv(camera_extrinsic_matrix)
-    R = camera_extrinsic_inv[:3, :3]
-    t = camera_extrinsic_inv[:3, -1]
+def c2d(input_dir: str, output_dir: str, cameras_info, photos_info, targetWidth):
+    depth_dir = os.path.join(output_dir, "depth")
+    os.makedirs(depth_dir, exist_ok=True)
+    color = os.path.join(input_dir, 'color')
 
-    depth_height, depth_width = depth.shape
-    # 生成每个像素的坐标
-    u, v = np.meshgrid(np.arange(depth_width), np.arange(depth_height))
-    u = u.flatten()
-    v = v.flatten()
-    z = depth.flatten()
-    z /= 2000
-    x = (u - cx) * z / fx  # 计算X坐标
-    y = (v - cy) * z / fy  # 计算Y坐标
-    # 生成点云（每个点的坐标为 (X, Y, Z)）
-    points = np.dot(R, np.array([x, y, z])).T + t
+    origin_depth = os.path.join(depth_dir, "depth_0")
+    resized_depth = os.path.join(depth_dir, "depth_resize")
+    colorful_depth = os.path.join(depth_dir, "depth_color")
 
-    return points
+    points_cloud = o3d.io.read_point_cloud(os.path.join(color, os.listdir(color)[0]))
+    # 计算radius
+    diameter = np.linalg.norm(np.asarray(points_cloud.get_max_bound()) - np.asarray(points_cloud.get_min_bound()))
 
+    for i, camera_info in tqdm(enumerate(cameras_info), desc="Processing photo groups", leave=True, position=0):
+        os.makedirs(os.path.join(origin_depth, f'{i}'), exist_ok=True)
+        for j, photo_info in tqdm(enumerate(photos_info[i]), desc=f"Rendering depths for group {i + 1}", leave=True, position=1):
+            photo_depth, photo_depth_normalized, pured_points_cloud = render_depth(points_cloud, camera_info, photo_info, radius=diameter*1000)
+            photo_name = photo_info[1].split('.')[0]
+            Image.fromarray(photo_depth_normalized).save(origin_depth + f'/{i}' +  f'/depth-{photo_name}.png')
+            o3d.io.write_point_cloud(colorful_depth + f'{i}' + f'/depth-{photo_name}.pcd', pured_points_cloud)
+            ip(photo_depth, resized_depth + f'{i}' + f'/resized-depth-{photo_name}.png', targetWidth)
 if __name__ == '__main__':
-    point_files = os.listdir(color)
-    # point_cloud = o3d.io.read_point_cloud(os.path.join(color, f'{point_files[0]}'))
+    input_dir = './input'
+    output_dir = './output'
+
+    with open('config/config.json') as file:
+        data = json.load(file)
+    targetWidth = int(data['imageWidth'])
+
+    c2d(input_dir, output_dir, *read_info(input_dir), targetWidth)

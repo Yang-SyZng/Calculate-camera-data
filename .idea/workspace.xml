@@ -5,8 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4018048d-cf1d-488b-81ab-f4d7bd496ae9" name="更改" comment="update">
+      <change afterPath="$PROJECT_DIR$/111111/c2d_new.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/cloud2depth_new.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/config.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/convey2ourdata.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/depthColorful_new.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/depth_map_utils.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/ip_basic_new.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/pull_ourData.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/start.bat" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/111111/start.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/pull_data.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/start.bat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/1.pull_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/1.pull_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/2.convert_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/2.generate_depth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/3.generate_depth.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/another_scripts/depth2point.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/depth2point.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,9 +95,11 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Python.1.pull_data.executor": "Run",
+    "Python.2.generate_depth.executor": "Run",
     "Python.c2d_new.executor": "Run",
     "Python.convert_data.executor": "Run",
     "Python.convey2ourdata.executor": "Run",
+    "Python.ip_basic_new.executor": "Run",
     "Python.main.executor": "Run",
     "Python.matrix.executor": "Run",
     "Python.pull_ourData.executor": "Run",
@@ -103,14 +120,15 @@
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="E:\Projections\Python\Calculate-camera-data" />
+      <recent name="E:\Projections\Python\Calculate-camera-data\scripts" />
       <recent name="E:\Projections\Python\Calculate-camera-data\cal_scripts" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="E:\Projections\Python\Calculate-camera-data\config" />
+      <recent name="E:\Projections\Python\Calculate-camera-data\111111\data\input" />
       <recent name="E:\Projections\Python\Calculate-camera-data" />
-      <recent name="E:\Projections\Python\Calculate-camera-data\scripts\data\input" />
       <recent name="E:\Projections\Python\Calculate-camera-data\ip_basic" />
-      <recent name="E:\Projections\Python\Calculate-camera-data\data" />
+      <recent name="E:\Projections\Python\Calculate-camera-data\scripts" />
+      <recent name="E:\Projections\Python\Calculate-camera-data\config" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -141,7 +159,7 @@
       <workItem from="1740880051227" duration="9000" />
       <workItem from="1740881222694" duration="1421000" />
       <workItem from="1740882669138" duration="327000" />
-      <workItem from="1740883015145" duration="18978000" />
+      <workItem from="1740883015145" duration="27268000" />
     </task>
     <task id="LOCAL-00001" summary="Add files via upload">
       <option name="closed" value="true" />
@@ -343,7 +361,15 @@
       <option name="project" value="LOCAL" />
       <updated>1740916479712</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="update">
+      <option name="closed" value="true" />
+      <created>1740916522130</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1740916522130</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -368,12 +394,14 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Calculate_camera_data$1_pull_data.coverage" NAME="1.pull_data 覆盖结果" MODIFIED="1740916472158" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Calculate_camera_data$c2d_new.coverage" NAME="c2d_new 覆盖结果" MODIFIED="1740900617472" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/Calculate_camera_data$c2d_new.coverage" NAME="c2d_new 覆盖结果" MODIFIED="1740923344849" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/111111" />
     <SUITE FILE_PATH="coverage/Calculate_camera_data$test.coverage" NAME="test 覆盖结果" MODIFIED="1740729315452" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Calculate_camera_data$ip_basic_new.coverage" NAME="ip_basic_new 覆盖结果" MODIFIED="1740922427440" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/111111" />
     <SUITE FILE_PATH="coverage/Calculate_camera_data$convert_data.coverage" NAME="convert_data 覆盖结果" MODIFIED="1740884606289" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/cal_scripts" />
     <SUITE FILE_PATH="coverage/Calculate_camera_data$matrix.coverage" NAME="matrix 覆盖结果" MODIFIED="1740620502423" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Calculate_camera_data$main.coverage" NAME="main 覆盖结果" MODIFIED="1740900307719" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Calculate_camera_data$pull_ourData.coverage" NAME="pull_ourData 覆盖结果" MODIFIED="1740895256669" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
-    <SUITE FILE_PATH="coverage/Calculate_camera_data$convey2ourdata.coverage" NAME="convey2ourdata 覆盖结果" MODIFIED="1740897486799" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/scripts" />
+    <SUITE FILE_PATH="coverage/Calculate_camera_data$2_generate_depth.coverage" NAME="2.generate_depth 覆盖结果" MODIFIED="1740924783524" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Calculate_camera_data$pull_ourData.coverage" NAME="pull_ourData 覆盖结果" MODIFIED="1740919794771" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/111111" />
+    <SUITE FILE_PATH="coverage/Calculate_camera_data$convey2ourdata.coverage" NAME="convey2ourdata 覆盖结果" MODIFIED="1740919961684" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/111111" />
   </component>
 </project>

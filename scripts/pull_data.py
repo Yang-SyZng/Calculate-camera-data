@@ -131,7 +131,7 @@ def save_info(input_dir: str, output_dir: str, cameras_info, photos_info, target
                     f" {camera_info[4] / scale} {camera_info[5] / scale}\n")
             f.write(data)
     index = 1
-    # [id, img_name, quaternion, rotation, camera_position, extrinsic]
+    # [id, img_name, quaternion, rotation, camera_position, extrinsic])
     with open(images_info_path, 'w') as file:
         for i, photo_info in enumerate(photos_info):
             for photo in photo_info:
@@ -156,14 +156,3 @@ def save_info(input_dir: str, output_dir: str, cameras_info, photos_info, target
                 resized_image = original_image.resize(new_size)
 
                 resized_image.save(os.path.join(resize_images_path, img_n))
-if __name__ == '__main__':
-    input_dir = './input'
-    output_dir = './output'
-
-    with open('config/config.json') as file:
-        data = json.load(file)
-    targetWidth = int(data['imageWidth'])
-
-    print('====start pull data====')
-    save_info(input_dir, output_dir, *read_info(input_dir), targetWidth)
-    print('====pull data finished====')
