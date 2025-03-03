@@ -115,6 +115,7 @@ def read_info(input_dir: str):
 
 def save_info(input_dir: str, output_dir: str, cameras_info, photos_info, targetWidth):
     undis = os.path.join(input_dir, 'undis')
+    color = os.path.join(input_dir, 'color')
     sparse_path = os.path.join(output_dir, 'sparse', '0')
     resize_images_path = os.path.join(output_dir, 'images')
     os.makedirs(sparse_path, exist_ok=True)

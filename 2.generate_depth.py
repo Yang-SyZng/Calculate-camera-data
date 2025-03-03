@@ -6,7 +6,7 @@ import open3d as o3d
 from PIL import Image
 from scripts.pull_data import read_info
 from ip_basic.ip_basic import ip
-
+import cv2
 
 """
 created by yang @ 2024/11/07
@@ -21,31 +21,53 @@ def render_depth(points_cloud, camera_info, photo_info, radius):
     # 点云的剔除
     pured_points = pure_point_cloud(points_cloud, np.array(photo_info[4]), radius=radius)
 
+    # 提取点云的坐标和颜色
+    points = np.asarray(pured_points.points)  # 世界坐标系下的点云坐标
+    colors = np.asarray(pured_points.colors) if pured_points.has_colors() else None  # RGB 值（如果存在）
+
     # 点云 世界坐标 -> 相机坐标
-    pc_camera_coordinate = world_to_camera(np.array(pured_points.points), photo_info[-1]).T
+    pc_camera_coordinate = world_to_camera(points, photo_info[-1]).T
     # 提取相机坐标下点云的深度信息
     # 过滤相机背后的点云
-    valid = (pc_camera_coordinate[:, 2] >= 0)
-    pc_camera_coordinate = pc_camera_coordinate[valid]
+    valid_camera = (pc_camera_coordinate[:, 2] >= 0)
+    pc_camera_coordinate = pc_camera_coordinate[valid_camera]
+    points = points[valid_camera]
+    if colors is not None:
+        colors = colors[valid_camera]  # 同步过滤颜色
+
     Z_c = pc_camera_coordinate[:, 2]
+
     # 点云投影到图像上
     pc_camera_2d_coordinate = camera_to_2D(pc_camera_coordinate, camera_info[-1])
-
     u, v = pc_camera_2d_coordinate[:, 0], pc_camera_2d_coordinate[:, 1]
+
     # 进一步过滤：只保留在图像边界内的点
-    valid = (u >= 0) & (u < width) & (v >= 0) & (v < height)
-    u = u[valid].astype(int)
-    v = v[valid].astype(int)
-    Z_c = Z_c[valid]
+    valid_image = (u >= 0) & (u < width) & (v >= 0) & (v < height)
+    u = u[valid_image].astype(int)
+    v = v[valid_image].astype(int)
+    Z_c = Z_c[valid_image]
+    points = points[valid_image]
+    if colors is not None:
+        colors = colors[valid_image]  # 同步过滤颜色
+
+    # 创建过滤后的点云对象
+    filtered_points = o3d.geometry.PointCloud()
+    filtered_points.points = o3d.utility.Vector3dVector(points)
+    if colors is not None:
+        filtered_points.colors = o3d.utility.Vector3dVector(colors)  # 保留 RGB 值
     # 转换成图像深度
     Z_c_normalized = (Z_c - Z_c.min()) / (Z_c.max() - Z_c.min()) * 255
     # 生成深度图
-    depth_map_normalized = np.full((height, width), 0)
-    depth_map = np.full((height, width), 0)
+    depth_map_normalized = np.full((height, width), 0, dtype=np.uint8)
+    depth_map = np.full((height, width), 0, dtype=np.float32)  # 单通道原始深度图
+    depth_map_colored = np.zeros((height, width, 3), dtype=np.uint8)  # 三通道彩色深度图
     for i in range(len(u)):
         depth_map_normalized[int(v[i]), int(u[i])] = Z_c_normalized[i]
         depth_map[int(v[i]), int(u[i])] = Z_c[i]
-    return depth_map, depth_map_normalized.astype(np.uint8), pured_points
+        if colors is not None:
+            depth_map_colored[v[i], u[i]] = (colors[i] * 255).astype(np.uint8)  # 将颜色值（0-1范围）转为 0-255
+
+    return depth_map, depth_map_normalized, depth_map_colored.astype(np.uint8), filtered_points
 
 def pure_point_cloud(point_cloud, camera_location: np.ndarray, radius: float):
     _, pt_map = point_cloud.hidden_point_removal(camera_location=camera_location.reshape((3, 1)), radius=radius)
@@ -163,14 +185,43 @@ def _convert_extrinsic_(camera_extrinsic: list):
 
     return extrinsic
 
+def colorful(output_dir,output_colorful_dir):
+    # modified by zc @ 2024/02/26
+    """可视化深度图，生成深度图片
+
+    Args:
+        output_dir (str): 深度信息文件路径
+        output_colorful_dir (str): 深度图片输出路径
+    """
+    # end modified
+    os.makedirs(output_colorful_dir, exist_ok=True)
+    input_depth_dir = os.path.expanduser(output_dir)
+    image_list = []
+    depth_pathes = os.listdir(input_depth_dir)
+    for file in depth_pathes:
+        if file[-3:] == "npz" or file[-3:] == "npy":
+            image_list.append(input_depth_dir + '/' + file)
+    for depth_image in image_list:
+        depth = np.load(depth_image)
+        if depth_image[-3:] == "npz":
+            depth = depth[depth.files[0]].astype(np.float32)
+        img = cv2.applyColorMap(np.uint8(depth / np.amax(depth) * 255), cv2.COLORMAP_JET)
+        img_name = depth_image.split('/')[-1].split('.')[0]
+        outpath = output_colorful_dir + '/' + img_name + '.png'
+        cv2.imwrite(outpath, img)
+        print(outpath)
+
+# end created @ jxf
+
 def c2d(input_dir: str, output_dir: str, cameras_info, photos_info, targetWidth):
     depth_dir = os.path.join(output_dir, "depth")
     os.makedirs(depth_dir, exist_ok=True)
     color = os.path.join(input_dir, 'color')
 
-    origin_depth = os.path.join(depth_dir, "depth_0")
-    resized_depth = os.path.join(depth_dir, "depth_resize")
-    colorful_depth = os.path.join(depth_dir, "depth_color")
+    origin_depth = os.path.join(depth_dir, "origin_depth")
+    origin_depth_colored = os.path.join(depth_dir, "origin_depth_colored")
+    resized_depth = os.path.join(depth_dir, "resized_depth")
+    colorful_points = os.path.join(depth_dir, "depth_color")
 
     points_cloud = o3d.io.read_point_cloud(os.path.join(color, os.listdir(color)[0]))
     # 计算radius
@@ -178,12 +229,21 @@ def c2d(input_dir: str, output_dir: str, cameras_info, photos_info, targetWidth)
 
     for i, camera_info in tqdm(enumerate(cameras_info), desc="Processing photo groups", leave=True, position=0):
         os.makedirs(os.path.join(origin_depth, f'{i}'), exist_ok=True)
+        os.makedirs(os.path.join(origin_depth_colored, f'{i}'), exist_ok=True)
+        os.makedirs(os.path.join(resized_depth, f'{i}'), exist_ok=True)
+        os.makedirs(os.path.join(colorful_points, f'{i}'), exist_ok=True)
         for j, photo_info in tqdm(enumerate(photos_info[i]), desc=f"Rendering depths for group {i + 1}", leave=True, position=1):
-            photo_depth, photo_depth_normalized, pured_points_cloud = render_depth(points_cloud, camera_info, photo_info, radius=diameter*1000)
+            photo_depth, photo_depth_normalized, photo_depth_colored, filtered_points =\
+                render_depth(points_cloud, camera_info, photo_info, radius=diameter*1000)
             photo_name = photo_info[1].split('.')[0]
-            Image.fromarray(photo_depth_normalized).save(origin_depth + f'/{i}' +  f'/depth-{photo_name}.png')
-            o3d.io.write_point_cloud(colorful_depth + f'{i}' + f'/depth-{photo_name}.pcd', pured_points_cloud)
-            ip(photo_depth, resized_depth + f'{i}' + f'/resized-depth-{photo_name}.png', targetWidth)
+            # origin_depth
+            np.save(origin_depth + f'/{i}' +  f'/depth-{photo_name}', photo_depth)
+            # origin_depth_colored
+            Image.fromarray(photo_depth_colored).save(origin_depth_colored + f'/{i}' + f'/depth-{photo_name}.png')
+            # resized_depth
+            ip(photo_depth, resized_depth + f'/{i}' + f'/resized-depth-{photo_name}', targetWidth)
+            # colorful_points
+            o3d.io.write_point_cloud(colorful_points + f'/{i}' + f'/depth-{photo_name}.pcd', filtered_points)
 if __name__ == '__main__':
     input_dir = './input'
     output_dir = './output'
