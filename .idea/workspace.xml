@@ -4,28 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4018048d-cf1d-488b-81ab-f4d7bd496ae9" name="更改" comment="update">
-      <change afterPath="$PROJECT_DIR$/origin_scripts/c2d_new.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/cloud2depth_new.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/config.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/convey2ourdata.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/depthColorful_new.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/depth_map_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/ip_basic_new.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/pull_ourData.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/start.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/origin_scripts/start.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/111111/c2d_new.py" beforeDir="false" afterPath="$PROJECT_DIR$/111111/c2d_new.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/111111/cloud2depth_new.py" beforeDir="false" afterPath="$PROJECT_DIR$/111111/cloud2depth_new.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/111111/convey2ourdata.py" beforeDir="false" afterPath="$PROJECT_DIR$/111111/convey2ourdata.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/111111/ip_basic_new.py" beforeDir="false" afterPath="$PROJECT_DIR$/111111/ip_basic_new.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/111111/pull_ourData.py" beforeDir="false" afterPath="$PROJECT_DIR$/111111/pull_ourData.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/2.generate_depth.py" beforeDir="false" afterPath="$PROJECT_DIR$/2.generate_depth.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/npz2color.py" beforeDir="false" afterPath="$PROJECT_DIR$/npz2color.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/pull_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/pull_data.py" afterDir="false" />
-    </list>
+    <list default="true" id="4018048d-cf1d-488b-81ab-f4d7bd496ae9" name="更改" comment="update" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -180,7 +159,7 @@
       <workItem from="1741765479585" duration="1030000" />
       <workItem from="1741769569424" duration="355000" />
       <workItem from="1741778385368" duration="1406000" />
-      <workItem from="1741840869755" duration="87000" />
+      <workItem from="1741840869755" duration="186000" />
     </task>
     <task id="LOCAL-00001" summary="Add files via upload">
       <option name="closed" value="true" />
@@ -422,7 +401,15 @@
       <option name="project" value="LOCAL" />
       <updated>1741088398028</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="update">
+      <option name="closed" value="true" />
+      <created>1741841015198</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1741841015198</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
