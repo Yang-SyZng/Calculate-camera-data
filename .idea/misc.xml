@@ -3,4 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="torch" />
   </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="gaussian_splatting" project-jdk-type="Python SDK" />
 </project>

@@ -160,12 +160,8 @@ def _convert_intrinsic_(camera_intrinsic: list):
     S = camera_intrinsic[3]
     cx, cy = camera_intrinsic[4:]
 
-    # 传感器尺寸
-    sensor_width = AspectRatio * (S / w)
-    sensor_height = (S / w) / AspectRatio
-
-    fx = f / sensor_width
-    fy = f / sensor_height
+    fx = w * f / S
+    fy = fx
 
     # 计算相机内参矩阵
     intrinsic = np.array([[fx, 0, cx],
@@ -241,7 +237,7 @@ def c2d(input_dir: str, output_dir: str, cameras_info, photos_info, targetWidth)
             # origin_depth_colored
             Image.fromarray(photo_depth_colored).save(origin_depth_colored + f'/{i}' + f'/depth-{photo_name}.png')
             # resized_depth
-            ip(photo_depth, resized_depth + f'/{i}' + f'/resized-depth-{photo_name}', targetWidth)
+            ip(photo_depth, resized_depth + f'/{i}' + f'/{photo_name}', targetWidth)
             # colorful_points
             o3d.io.write_point_cloud(colorful_points + f'/{i}' + f'/depth-{photo_name}.pcd', filtered_points)
 if __name__ == '__main__':
